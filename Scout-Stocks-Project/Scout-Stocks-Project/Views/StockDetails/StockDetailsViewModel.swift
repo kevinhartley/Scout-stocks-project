@@ -22,22 +22,27 @@ class StockDetailsViewModel: ObservableObject {
         self.aggregateDetails = tickerAggregate
     }
     
-    func getstock(with tickerName: String) {
+    func getstock(with tickerName: String) async {
         isLoading = true
-        Task {
+        Task.detached { [self] in
             do {
-                let stock = try await stocksDataProvider.getStockDetails(with: tickerName)
-                self.stockDetails = stock
-                isLoading = false
+                let stock = try await self.stocksDataProvider.getStockDetails(with: tickerName)
+                await MainActor.run {
+                    self.stockDetails = stock
+                    isLoading = false
+                }
             } catch {
                 guard let stocksError = error as? StocksError else {
                     print("UnknownError: \(error)")
                     return
                 }
-                self.error = stocksError
-                isLoading = false
-                print("Underlying Issue: \(stocksError)")
-                return
+                
+                await MainActor.run {
+                    self.error = stocksError
+                    isLoading = false
+                    print("Underlying Issue: \(stocksError)")
+                    return
+                }
             }
         }
     }

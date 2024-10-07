@@ -69,16 +69,22 @@ struct StocksListView: View {
             .navigationTitle("Stocks")
             .navigationBarTitleDisplayMode(.large)
             .refreshable(action: {
-                viewModel.fetchDefaultStocks()
+                Task {
+                    await viewModel.fetchDefaultStocks()
+                }
             })
             .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always))
             .onChange(of: viewModel.searchText, initial: true) { _, newText  in
                 if newText.isEmpty {
                     headerText = "All Results"
-                    viewModel.fetchDefaultStocks()
+                    Task {
+                        await viewModel.fetchDefaultStocks()
+                    }
                 } else {
                     headerText = "Search Results"
-                    viewModel.searchStocks(with: newText)
+                    Task {
+                        await viewModel.searchStocks(with: newText)
+                    }
                 }
             }
         }

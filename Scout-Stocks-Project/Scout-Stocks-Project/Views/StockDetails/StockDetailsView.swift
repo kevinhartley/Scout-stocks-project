@@ -83,7 +83,9 @@ struct StockDetailsView: View {
                 }
             }
             .onAppear(perform: {
-                viewModel.getstock(with: viewModel.aggregateDetails?.ticker ?? "")
+                Task {
+                    await viewModel.getstock(with: viewModel.aggregateDetails?.ticker ?? "")
+                }
             })
             .navigationTitle(viewModel.stockDetails?.results.name ?? "No Stock Name")
             .background(Color.sand)

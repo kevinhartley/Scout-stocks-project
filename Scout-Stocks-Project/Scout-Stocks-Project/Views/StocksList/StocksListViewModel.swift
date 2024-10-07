@@ -21,44 +21,54 @@ class StocksListViewModel: ObservableObject {
         self.stocksDataProvider = stocksDataProvider
     }
     
-    func searchStocks(with query: String) {
+    func searchStocks(with query: String) async {
         isLoading = true
-        Task {
-            error = nil
+        error = nil
+        
+        Task.detached {
             do {
-                let stocks = try await stocksDataProvider.getAggregateData(for: query)
-                self.stockResults = [stocks]
-                self.isLoading = false
-            } catch {
-                guard let stocksError = error as? StocksError else {
-                    print("UnknownError: \(error)")
-                    return
+                let stocks = try await self.stocksDataProvider.getAggregateData(for: query)
+                await MainActor.run {
+                    self.stockResults = [stocks]
+                    self.isLoading = false
                 }
-                self.error = stocksError
-                self.isLoading = false
-                print("Underlying Issue: \(stocksError)")
-                return
-            }
-        }
-    }
-    
-    func fetchDefaultStocks() {
-        isLoading = true
-        Task {
-            do {
-                let aggregates = try await stocksDataProvider.fetchDefaultStocks()
-                self.stockResults = aggregates
-                self.isLoading = false
             } catch {
                 guard let stocksError = error as? StocksError else {
                     print("UnknownError: \(error)")
                     return
                 }
                 
-                self.error = stocksError
-                self.isLoading = false
-                print("Underlying Issue: \(stocksError)")
-                return
+                await MainActor.run {
+                    self.error = stocksError
+                    self.isLoading = false
+                    print("Underlying Issue: \(stocksError)")
+                    return
+                }
+            }
+        }
+    }
+    
+    func fetchDefaultStocks() async {
+        isLoading = true
+        Task.detached {
+            do {
+                let aggregates = try await self.stocksDataProvider.fetchDefaultStocks()
+                await MainActor.run {
+                    self.stockResults = aggregates
+                    self.isLoading = false
+                }
+            } catch {
+                guard let stocksError = error as? StocksError else {
+                    print("UnknownError: \(error)")
+                    return
+                }
+                
+                await MainActor.run {
+                    self.isLoading = false
+                    self.error = stocksError
+                    print("Underlying Issue: \(stocksError)")
+                    return
+                }
             }
         }
     }
